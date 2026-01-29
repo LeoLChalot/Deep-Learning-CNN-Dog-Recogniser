@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détecteur de Race de Chien 🐶</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            background-color: white;
+            font-size: 1rem;
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        .divider {
+            margin: 1rem 0;
+            color: #888;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .divider::before {
+            margin-right: .5em;
+        }
+
+        .divider::after {
+            margin-left: .5em;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #preview-container {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        #preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        /* --- STYLE DU PODIUM (TOP 3) --- */
+        .result-item {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .progress-bar-bg {
+            background-color: #eee;
+            border-radius: 10px;
+            height: 12px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1s ease-in-out;
+        }
+
+        /* --- COULEURS DU PODIUM --- */
+        /* 1er : Vert */
+        .result-item:nth-child(2) .progress-bar-fill {
+            background-color: #4CAF50;
+        }
+
+        /* 2ème : Orange */
+        .result-item:nth-child(3) .progress-bar-fill {
+            background-color: #FF9800;
+        }
+
+        /* 3ème : Rouge */
+        .result-item:nth-child(4) .progress-bar-fill {
+            background-color: #f44336;
+        }
+
+        /* Note : j'utilise nth-child(2), (3), (4) car le 1er enfant du div #result est le titre <h3> */
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🐶 Quelle est cette race ?</h1>
+
+        <div class="input-group">
+            <label for="modelSelect">🧠 Choisir le modèle (IA)</label>
+            <select id="modelSelect">
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="fileInput">Option 1 : Importer une photo</label>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+
+        <div class="divider">OU</div>
+
+        <div class="input-group">
+            <label for="urlInput">Option 2 : Coller une URL</label>
+            <input type="text" id="urlInput" placeholder="https://exemple.com/mon-chien.jpg">
+        </div>
+
+        <button id="predictBtn" onclick="predict()">Analyser l'image</button>
+
+        <div id="preview-container">
+            <img id="preview-image" src="" alt="Prévisualisation">
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 🛠️ CONFIGURATION : AJOUTEZ VOS MODÈLES ICI
+        // ==========================================
+        const AVAILABLE_MODELS = [
+            "model_scratch_v2.keras",
+            "model_dog_mobilenetv2.keras",
+            "model_dog_efficientnetb0.keras"
+        ];
+
+        const modelSelect = document.getElementById('modelSelect');
+
+        // Remplissage automatique du menu déroulant
+        AVAILABLE_MODELS.forEach((modelName, index) => {
+            const option = document.createElement('option');
+            option.value = modelName;
+            // Affiche un nom plus propre si c'est le 1er ou le 2eme, sinon affiche le nom du fichier
+            if (modelName.includes("scratch")) {
+                option.text = "Modèle From Scratch (Fait maison)";
+            } else if (modelName.includes("mobilenetv2")) {
+                option.text = "Modèle Transfer Learning (MobileNet)";
+            } else if (modelName.includes("efficientnetb0")) {
+                option.text = "Modèle Transfer Learning (EfficientNet)";
+            } else {
+                option.text = modelName;
+            }
+
+            // Sélectionner le premier par défaut
+            if (index === 0) option.selected = true;
+            modelSelect.appendChild(option);
+        });
+
+        // --- VARIABLES UI ---
+        const fileInput = document.getElementById('fileInput');
+        const urlInput = document.getElementById('urlInput');
+        const previewContainer = document.getElementById('preview-container');
+        const previewImage = document.getElementById('preview-image');
+        const resultDiv = document.getElementById('result');
+        const btn = document.getElementById('predictBtn');
+
+        // ⚠️ Port de l'API (à vérifier)
+        const API_BASE_URL = "http://127.0.0.1:8000";
+
+        // --- GESTION PREVIEW ---
+        fileInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                urlInput.value = '';
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewImage.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    resultDiv.style.display = 'none';
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        urlInput.addEventListener('input', function () {
+            if (this.value) {
+                fileInput.value = '';
+                previewImage.src = this.value;
+                previewContainer.style.display = 'block';
+                resultDiv.style.display = 'none';
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
+
+        // --- LOGIQUE PRÉDICTION ---
+        async function predict() {
+            resultDiv.style.display = 'none';
+            resultDiv.className = '';
+            btn.disabled = true;
+            btn.textContent = "Analyse en cours...";
+
+            const selectedModel = modelSelect.value;
+
+            try {
+                let response;
+
+                // CAS 1 : FICHIER
+                if (fileInput.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append("file", fileInput.files[0]);
+
+                    response = await fetch(`${API_BASE_URL}/predict/file?model_name=${selectedModel}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                }
+                // CAS 2 : URL
+                else if (urlInput.value.trim() !== "") {
+                    response = await fetch(`${API_BASE_URL}/predict/url`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: urlInput.value,
+                            model_name: selectedModel
+                        })
+                    });
+                } else {
+                    throw new Error("Veuillez sélectionner une image.");
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Erreur inconnue");
+                }
+
+                const data = await response.json();
+                showResult(data);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Analyser l'image";
+            }
+        }
+
+        // --- AFFICHAGE RESULTAT (TOP 3) ---
+        function showResult(data) {
+            const predictions = data.predictions;
+
+            let htmlContent = '<h3>📊 Résultats</h3>';
+
+            predictions.forEach((pred, index) => {
+                htmlContent += `
+                <div class="result-item">
+                    <div class="result-header">
+                        <span>${index + 1}. ${pred.breed}</span>
+                        <span>${pred.confidence}%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${pred.confidence}%"></div>
+                    </div>
+                </div>
+            `;
+            });
+
+            const modelName = modelSelect.options[modelSelect.selectedIndex].text;
+            htmlContent += `<br><small style="color:#888">IA : ${modelName}</small>`;
+
+            resultDiv.innerHTML = htmlContent;
+
+            // Couleur du cadre global (basée sur la confiance du 1er)
+            const topConfidence = predictions[0].confidence;
+            resultDiv.className = topConfidence > 50 ? 'success' : 'error';
+            resultDiv.style.display = 'block';
+        }
+
+        function showError(message) {
+            resultDiv.innerHTML = `<strong>Erreur :</strong> ${message}`;
+            resultDiv.className = 'error';
+            resultDiv.style.display = 'block';
+        }
+    </script>
+
+</body>
+
+</html>
