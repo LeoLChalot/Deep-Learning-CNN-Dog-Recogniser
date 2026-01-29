@@ -1,0 +1,13 @@
+Projet-Application-CNN-DeepLearning/venv/
+Projet-Application-CNN-DeepLearning/api/__pycache__
+
+Projet-Etude-CNN-DeepLearning/.idea/
+Projet-Etude-CNN-DeepLearning/dataset/Dog-Breed-Identification/Gemini-Generated-Images
+Projet-Etude-CNN-DeepLearning/dataset/Dog-Breed-Identification/Google-Images
+Projet-Etude-CNN-DeepLearning/dataset/Dog-Breed-Identification/test
+Projet-Etude-CNN-DeepLearning/dataset/Dog-Breed-Identification/train
+Projet-Etude-CNN-DeepLearning/dataset/Dog-Breed-Identification/test_train.zip
+Projet-Etude-CNN-DeepLearning/notebooks/.ipynb_checkpoints
+
+*.odt
+*.odt#
