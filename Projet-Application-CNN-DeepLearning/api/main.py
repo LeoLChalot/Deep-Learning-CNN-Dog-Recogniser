@@ -72,26 +72,20 @@ def prepare_image(img_pil):
 def predict_process(model, img_array):
     predictions = model.predict(img_array)
     
-    # predictions[0] contient les 120 probabilités
+    # 120 probabilités
     probs = predictions[0]
-    
-    # 1. np.argsort trie les indices du plus petit score au plus grand
-    # 2. [-3:] prend les 3 derniers (donc les 3 plus grands)
-    # 3. [::-1] inverse la liste pour avoir le meilleur en premier
-    top_3_indices = np.argsort(probs)[-3:][::-1]
+    top_3_indices = np.argsort(probs)[-120:][::-1]
     
     results = []
     
     for i in top_3_indices:
         confidence = float(probs[i])
-        # On ignore les résultats vraiment trop faibles (optionnel, ex: < 0.01%)
         if confidence > 0.0001: 
             results.append({
                 "breed": labels_map.get(int(i), "Inconnu"),
-                "confidence": round(confidence * 100, 2)
+                "confidence": round(confidence * 100, 6)
             })
             
-    # On retourne un objet contenant la liste
     return {"predictions": results}
 
 class UrlRequest(BaseModel):
